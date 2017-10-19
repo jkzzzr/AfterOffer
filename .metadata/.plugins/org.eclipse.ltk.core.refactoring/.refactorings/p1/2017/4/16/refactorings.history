@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy element &apos;Com_Sim_K_means.java&apos; to &apos;P2/src/similarity&apos;&#x0D;&#x0A;- Original project: &apos;P1&apos;&#x0D;&#x0A;- Destination element: &apos;P2/src/similarity&apos;&#x0D;&#x0A;- Original element: &apos;compute.Com_Sim_K_means.java&apos;" description="Copy compilation unit" destination="=P2/src&lt;similarity" element1="/src&lt;compute{Com_Sim_K_means.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1492569179534" units="1" version="1.0"/>
+</session>

@@ -1,0 +1,28 @@
+package CBSumToWordList;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class Entry_Extract_HtmlCode {
+    /**
+     * 获取html原玛
+     * @param docid 
+     * @return 
+     */
+	public static String run(String docid){
+	    docid = docid.trim();
+		Content.setContent("");
+		new ExtractEachDoc2(docid);
+		String con = Content.getContent();
+		
+		return con;
+	}
+	public static void main(String args[]) throws IOException{
+		String html = run("clueweb09-enwp00-26-05017");
+		BufferedWriter bWriter = new BufferedWriter(new FileWriter("/home/lee/13.html"));
+		bWriter.write(html);
+		bWriter.close();
+	//	System.out.println(html);
+	}
+}

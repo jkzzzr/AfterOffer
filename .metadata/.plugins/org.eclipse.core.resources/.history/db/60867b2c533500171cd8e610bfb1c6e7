@@ -1,0 +1,61 @@
+package application;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.StringTokenizer;
+
+import myMethod.Choose_Centroid;
+import myMethod.Choose_MMR;
+
+public class Choose_TotalMMR {
+
+	public static int typenumber = 3;
+	public static void main(String[] args) throws Exception {
+		Choose_MMR choose_MMR = new Choose_MMR();
+		System.out.println("WTF2");
+		for (int i = 201; i <= 250; i++){
+			System.out.println("qid\t" + i);
+			
+			
+			
+			BufferedReader brBufferedReader = new BufferedReader(new FileReader("E:\\2013query\\类别多样化计算--LDA-Cosin"));
+			String line = "";
+			int count = 0;
+			int[] a = new int[typenumber];
+			while ((line =brBufferedReader.readLine())!=null){
+				if (!line.startsWith(i+"")){
+					continue;
+				}
+				if (count + 1 > typenumber){
+					break;
+				}
+				StringTokenizer st = new StringTokenizer(line);
+				st.nextToken();
+				st.nextToken();
+				int type = Integer.parseInt(st.nextToken());
+				a[count] = type;
+				count ++;
+			}
+			
+			
+			
+			
+			
+			
+			
+			System.out.println("当前进度：\tqid:" +i);
+			choose_MMR.clear(i);
+			choose_MMR.init_chooseCen(a);
+			HashSet<Integer> dataSet = choose_MMR.init_dataList("E:\\2013query\\全局-自定义");
+			choose_MMR.choose(dataSet, "E:\\2013query\\all.index.adhoc", "E:\\2013query\\final--LDA\\lda.cosin."
+					+ typenumber
+					+ ".choose");
+		}
+
+	}
+
+}

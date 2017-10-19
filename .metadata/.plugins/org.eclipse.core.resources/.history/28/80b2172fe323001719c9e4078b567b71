@@ -1,0 +1,36 @@
+package diversity;
+
+import java.util.ArrayList;
+
+public class MMR extends A_implicit {
+
+	@Override
+	public void div() {
+		int K = super.alData_.size();
+		ArrayList<Integer> left_List = new ArrayList<Integer>();
+//		ArrayList<Data_> result = new ArrayList<Data_>();
+		for (int i = 0; i < K; i++){
+			left_List.add(i);
+		}
+		//选择出K个结果
+		for (int i = 0; i < K; i++){
+			double max_score = 0.0;
+			int max_index = 0;
+			//每个结果，都是从剩余中找出最大得分的一个
+			for (int j = 0; j < left_List.size(); j++){
+				int index = left_List.get(j);
+				double part1 = super.lambda * super.alData_.get(index).getScore();
+				double part2 = (1 - super.lambda) * 
+				
+				
+			}
+		}
+		
+		
+		
+	}
+	
+	public double max(int j){
+		retrun 0.0;
+	}
+}

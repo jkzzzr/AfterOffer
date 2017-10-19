@@ -1,0 +1,27 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.StringTokenizer;
+
+public class Extract_wp {
+
+	public static void main(String[] args) throws Exception {
+		BufferedReader bReader = new BufferedReader(new FileReader("/home/lee/DATA/data/left"));
+		BufferedWriter bWriter = new BufferedWriter(new FileWriter("/home/lee/DATA/left-wp"));
+		String temp = "";
+		while ((temp = bReader.readLine())!=null){
+			StringTokenizer stringTokenizer = new StringTokenizer(temp);
+			stringTokenizer.nextToken();
+			stringTokenizer.nextToken();
+			if (stringTokenizer.nextToken().contains("enwp")){
+				System.out.println("!!");
+				bWriter.write(temp+"\n");
+			}
+		}
+		bReader.close();
+		bWriter.close();
+		System.out.println("END");
+	}
+
+}

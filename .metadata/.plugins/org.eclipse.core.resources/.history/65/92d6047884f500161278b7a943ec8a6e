@@ -1,0 +1,210 @@
+package cn.edu.fetchDocFromCollection;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class WARC018Collection 
+{
+	
+	/** has the end of the current input file been reached? */
+	protected boolean eof = false;
+	/** the input stream of the current input file */
+	protected InputStream is = null;
+	/** the length of the blob containing the document data */
+	protected long currentDocumentBlobLength = 0;
+	/** properties for the current document */
+	protected Map<String,String> DocProperties = null;
+
+	String pageId,docid;
+	String url;
+WriteFile wf;
+String writePath;
+
+	/** construct a collection from the denoted collection.spec file */
+	public WARC018Collection(String filename,String docid,String writePath)
+	{
+		try {
+			this.docid=docid;
+			this.writePath=writePath;
+			is=new FileInputStream(new File(filename));
+			this.nextDocument();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally{
+			this.close();
+			//System.out.println("the total number of this file: "+documentsInThisFile);
+		}
+		
+	}
+
+
+	/** Closes the collection, any files that may be open. */
+	public void close()
+	{
+		try{
+			is.close();
+		} catch (IOException ioe) { 
+			
+		}
+	}
+
+
+	/** Get the document object representing the current document. */
+	public void getDocument()
+	{
+		int length=(int)currentDocumentBlobLength;
+		if(length<currentDocumentBlobLength){
+			System.out.println(pageId+" overflow");
+		}
+		byte[] con=new byte[length];
+		try {
+			is.read(con);
+			
+			String content=new String(con);
+			HtmlToText htmlTo=new HtmlToText();
+			content=htmlTo.Convert(content);
+
+			
+			
+		    wf=new WriteFile(this.writePath+"/"+pageId);
+		    wf.write(content);
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally{
+			wf.close();
+		}
+	}
+	
+	public void skipDocument(){
+		int length=(int)currentDocumentBlobLength;
+		if(length<currentDocumentBlobLength){
+			System.out.println(pageId+" overflow");
+		}
+		byte[] con=new byte[length];
+		try {
+			is.read(con);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally{
+		}
+	}
+
+	protected int parseHeaders(final boolean requireContentLength) throws IOException
+	{
+		int headerSize = 0;
+		boolean foundContentLength = false;
+		while(true)
+		{
+			final String followLine = readLine();
+			final int len = followLine.length();
+			headerSize += len+1;
+			if (len == 0)
+			{
+				if ( (! requireContentLength) || (requireContentLength && foundContentLength))
+					break;
+			}
+			final int colonIndex = followLine.indexOf(':');
+			if (colonIndex < 0)
+			{
+				continue;
+			}
+			final String key = followLine.substring(0,colonIndex).trim().toLowerCase();
+			final String value = followLine.substring(colonIndex+1, len).trim();
+			DocProperties.put(key, value);
+			if (key.equals("content-length"))
+				foundContentLength = true;
+		}
+		return headerSize;
+	}
+
+	/** Move the collection to the start of the next document. */
+	public void nextDocument() {
+		DocProperties = new HashMap<String, String>(15);
+		try {
+			warcrecord: while (true) {
+				if(eof){
+					break;
+				}
+				String line = readLine();
+				if (line.startsWith("WARC/0.18")) {
+					int headerSize = parseHeaders(true);
+					final long warc_response_length = Long
+							.parseLong(DocProperties.get("content-length"));
+					if (!DocProperties.get("warc-type").equals("response")) {
+						is.skip(warc_response_length);
+						continue warcrecord;
+					}
+					headerSize = parseHeaders(false);
+					this.pageId=DocProperties.get("warc-trec-id");
+					this.url=DocProperties.get("warc-target-uri");
+					currentDocumentBlobLength = warc_response_length - headerSize;
+					if(pageId.equals(this.docid)){
+						System.out.println("fixed suceess: "+pageId);
+						this.getDocument();
+						return;
+					}else{
+						this.skipDocument();
+					}
+				
+				}
+			}
+		} catch (Exception e) {
+
+		}
+	}
+
+	
+	/** read a line from the currently open InputStream is */
+	protected String readLine() throws IOException
+	{
+		final StringBuilder s = new StringBuilder();
+		int c = 0;char ch; char ch2;
+		while(true)
+		{
+			c = is.read();
+			if (c == -1)
+			{
+				eof = true;
+				break;
+			}
+			ch = (char)c;
+			if (ch == '\r')
+			{
+				c = is.read();
+				if (c== -1)
+				{
+					s.append(ch);
+					eof = true;
+					break;
+				}
+				ch2 = (char)c;
+				if (ch2 == '\n')
+					break;
+				s.append(ch); s.append(ch2);
+			}
+			else if (ch == '\n')
+			{
+				break;
+			}
+			else
+			{
+				s.append(ch);
+			}
+		}
+		return s.toString();
+	}
+}

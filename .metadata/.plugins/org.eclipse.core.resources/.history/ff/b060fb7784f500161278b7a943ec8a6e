@@ -1,0 +1,34 @@
+package cn.edu.term;
+
+public class RecordTerms {
+
+	String term;
+	int frequent=1;
+	public RecordTerms(String term) {
+		// TODO Auto-generated constructor stub
+	this.term=term;
+	}
+	public RecordTerms(String term, int x){
+		String str[] = term.split("\t");
+		this.term = str[0];
+		this.frequent = Integer.parseInt(str[1]);
+	}
+	public void  addFrequent(){
+		frequent++;
+	}
+	public void setTerm(String term){
+		this.term=term;
+	}
+	public String getTerm(){
+		return this.term;
+	}
+	public int getFrequent(){
+		return this.frequent;
+	}
+	public String toString(){
+		return this.term+"\t"+this.frequent;
+	}
+}
+
+
+

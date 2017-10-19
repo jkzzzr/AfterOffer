@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename type &apos;pack1.Construct&apos; to &apos;Contrast&apos;&#x0D;&#x0A;- Original project: &apos;P2&apos;&#x0D;&#x0A;- Original element: &apos;pack1.Construct&apos;&#x0D;&#x0A;- Renamed element: &apos;pack1.Contrast&apos;&#x0D;&#x0A;- Update references to refactored element&#x0D;&#x0A;- Update textual occurrences in comments and strings" description="Rename type &apos;Construct&apos;" flags="589830" id="org.eclipse.jdt.ui.rename.type" input="/src&lt;pack1{Construct.java[Construct" matchStrategy="1" name="Contrast" qualified="false" references="true" similarDeclarations="false" stamp="1491982302785" textual="false" version="1.0"/>
+</session>

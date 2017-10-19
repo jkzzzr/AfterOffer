@@ -1,0 +1,17 @@
+package diversity;
+
+public class MMR extends A_implicit {
+
+	@Override
+	public void div() {
+		int K = super.alData_.size();
+		for (int i = 0; i < K; i++){
+			
+			
+			
+			
+			
+			
+		}
+	}
+}

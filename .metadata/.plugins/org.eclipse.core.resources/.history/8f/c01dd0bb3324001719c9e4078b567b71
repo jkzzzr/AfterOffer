@@ -1,0 +1,47 @@
+package diversity;
+
+import java.util.ArrayList;
+
+public class MMR extends A_implicit {
+
+	@Override
+	public void div() {
+		int K = super.alData_.size();
+		//存储剩余文档，文档结果序号
+		ArrayList<Integer> left_List = new ArrayList<Integer>();
+		//存储结果列表的，文档结果序号
+		ArrayList<Integer> result = new ArrayList<Integer>();
+//		ArrayList<Data_> result = new ArrayList<Data_>();
+		for (int i = 0; i < K; i++){
+			left_List.add(i);
+		}
+		//选择出K个结果
+		for (int i = 0; i < K; i++){
+			double max_score = Double.MIN_VALUE;
+			int max_index = 0;
+			//每个结果，都是从剩余中找出最大得分的一个
+			for (int j = 0; j < left_List.size(); j++){
+				int index = left_List.get(j);
+				double part1 = super.lambda * super.alData_.get(index).getScore();
+				double part2 = (1 - super.lambda) * max(j);
+				double temp_score = part1 + part2;
+				if (max_score < temp_score){
+					max_score = temp_score;
+					max_index = j;
+				}
+			}
+			result.add(left_List.get(max_index));
+			left_List.remove(max_index);
+		}
+		return result;
+	}
+	/**
+	 * 原始结果中排名j的文档，与之相似度得分最低的,得分
+	 * @param j
+	 * @return
+	 */
+	public double max(int j){
+		//TODO
+		return 0.0;
+	}
+}

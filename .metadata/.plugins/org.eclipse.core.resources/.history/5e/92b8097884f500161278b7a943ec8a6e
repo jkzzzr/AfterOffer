@@ -1,0 +1,64 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.StringTokenizer;
+import java.util.TreeSet;
+
+/**
+ * 输入，combsum结果列表，
+ * 输出，词库中没有的结果，输出文件为left
+ * @author lee
+ *
+ */
+public class Check_exist {
+
+	public static void main(String[] args) throws Exception {
+		System.err.println("START");
+		int count = 0;
+		TreeSet<String> ts = new TreeSet<>();
+//		for (int item = 1; item < 51; item++){
+			String path = "//home/lee/音乐/WordList_perDoc_Path/-1";
+			File file = new File(path);
+			String [] strings = file.list();
+			for (int i = 0; i < strings.length; i++){
+				BufferedReader bReader = new BufferedReader(new FileReader(path +"/"+strings[i]));
+				if (bReader.readLine()!=null){
+					ts.add(strings[i]);
+					count ++;
+				}
+				bReader.close();
+			}
+	//	}
+		
+		BufferedWriter bWriter  = new BufferedWriter(new FileWriter("/home/lee/DATA/data/left-2011"));
+		
+		BufferedReader bReader = new BufferedReader(new FileReader("/home/lee/DATA/data/20118.Combsum051460"));
+		String temp = "";
+		while ((temp = bReader.readLine())!=null){
+			StringTokenizer st = new StringTokenizer(temp);
+			st.nextToken();
+			st.nextToken();
+			String docid = st.nextToken();
+			if (!ts.contains(docid)){
+				bWriter.write(temp+"\n");
+			}
+		}
+		
+		
+		
+		
+		
+	/*	Iterator<String> it = ts.iterator();
+		while (it.hasNext()){
+			bWriter.write(it.next()+"\n");
+		}*/
+		bWriter.close();
+		System.err.println("END");
+
+	
+	}
+
+}

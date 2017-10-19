@@ -1,0 +1,9 @@
+package diversity;
+
+public class MMR extends A_implicit {
+
+	@Override
+	public void div() {
+		
+	}
+}

@@ -1,0 +1,134 @@
+package process1;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.StringTokenizer;
+import java.util.TreeSet;
+
+import org.terrier.structures.DocumentIndex;
+import org.terrier.structures.Index;
+import org.terrier.structures.Lexicon;
+import org.terrier.structures.MetaIndex;
+import org.terrier.structures.Pointer;
+import org.terrier.structures.PostingIndex;
+
+public class StringToIndex {
+
+	public static String inputPath = "E:/实验数据/DPH_4.res";
+	public static String outputPath = "E:/实验数据/123";
+	public static HashMap<Integer, ArrayList<String>> HMAP = new HashMap<Integer, ArrayList<String>>();
+	
+	public Index index = null;
+	private MetaIndex meta;
+	private DocumentIndex doi;
+	private PostingIndex<Pointer> directIndex;
+	private Lexicon<String> lexicon;
+	private int alldocnumber;
+	public static void main(String[] args) throws Exception {
+		StringToIndex sti = new StringToIndex();
+		sti.init();
+		
+		for (int i = 151; i <=200; i++){
+			HashSet<String> hs = sti.input_Res(inputPath, i);
+			HashMap<String, Integer> hm = sti.check(hs);
+			
+			if (HMAP.containsKey("-1")){
+				HMAP.remove("-1");
+			}
+			TreeSet<String> ts = new TreeSet<String>(hm.keySet());
+			Iterator<String> it = ts.iterator();
+			
+	
+			BufferedWriter bw = new BufferedWriter(new FileWriter(outputPath));
+			while (it.hasNext()){
+				String qid = it.next();
+				ArrayList<String> alStrings = HMAP.get(qid);
+				for (int i= 0; i < alStrings.size(); i++){
+					String docid = alStrings.get(i);
+					Integer docno = hm.get(docid);
+					bw.write(qid+"\t"+docno+"\n");
+				}
+			}
+			hs.clear();
+			hm.clear();			
+		}
+		bw.close();
+		
+		
+	}
+
+	public void init(){
+		this.index = Index.createIndex();
+		this.meta = index.getMetaIndex();
+		this.doi = index.getDocumentIndex();
+		this.directIndex = (PostingIndex<Pointer>)index.getDirectIndex();
+		this.lexicon = index.getLexicon();
+		this.alldocnumber = doi.getNumberOfDocuments();
+	}
+	
+	public HashSet<String> input_Res(String path, int qid) throws Exception{
+		HashMap<Integer, ArrayList<String>> hmtemp = new HashMap<Integer, ArrayList<String>>();
+		
+		
+		HashSet<String> clueStrings = new HashSet<String>();
+		BufferedReader bReader = new BufferedReader(new FileReader(path));
+		String line = "";
+//		String tempQid = "-1";
+		ArrayList<String> al = new ArrayList<String>();
+		while ((line = bReader.readLine())!=null){
+			StringTokenizer st = new StringTokenizer(line);
+			Integer lineQid = Integer.parseInt(st.nextToken());
+			st.nextElement();
+			String docid = st.nextToken();
+			clueStrings.add(docid);
+			if (lineQid < qid){
+				continue;
+			}else if (lineQid == qid){
+		//		tempQid = lineQid;
+				al.add(docid);
+			}else {
+				hmtemp.put(qid, al);
+			}
+		}
+		bReader.close();
+		
+		StringToIndex.HMAP = hmtemp;
+		return clueStrings;
+	}
+	
+	public String  getdocString(int docno){
+		String docString = null;
+		try {
+			docString = meta.getItem("docno", docno);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return docString;
+	}
+	/**
+	 * docid - docno
+	 * @param clueStrings
+	 * @return
+	 */
+	public HashMap<String, Integer> check(HashSet<String> clueStrings){
+		TreeSet<String> ts = new TreeSet<String>(clueStrings);
+		HashMap<String, Integer> resultmap = new HashMap<String, Integer>();
+		int docNumber = doi.getNumberOfDocuments();
+		for (int i = 0; i < docNumber; i++){
+			String doc = getdocString(i);
+			resultmap.put(doc, i);
+		}
+		
+		return resultmap;
+		
+	}
+}

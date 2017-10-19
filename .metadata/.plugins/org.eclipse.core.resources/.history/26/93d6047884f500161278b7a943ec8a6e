@@ -1,0 +1,74 @@
+package CBSumToWordList;
+import java.io.BufferedReader;
+/**
+ * 读取网页内容，返回词项词频信息
+ */
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+
+
+//import cn.edu.splitByWord.LexicalAnalysis;
+//import searchDoc.AllPath;
+public class EntryH_W {
+	public static ArrayList<String> tempKey = new ArrayList<String>();
+	public static String tempDoc = "";
+	
+	public static void main(String args[]) throws IOException{
+		BufferedReader bReader = new BufferedReader(new FileReader("/home/lee/12.html"));
+		String temp = "";
+		StringBuffer sb = new StringBuffer();
+		while ((temp = bReader.readLine())!=null){
+			sb.append(temp);
+		}
+		temp = sb.toString();
+		ArrayList<String> aList = run(temp, "clueweb09-en0000-03-33540", "1");
+/*		for (int i = 0; i < aList.size(); i++){
+			System.out.println(aList.get(i));
+		}*/
+	}
+	
+	/**
+	 * 读取网页内容，返回词项词频信息
+	 */
+	public static ArrayList<String> run(String htmlCode,String docID,String qid){
+		String path = AllPath.WordList_perDoc_Path+ File.separator+ qid;
+		ArrayList<String> result = new ArrayList<String>();
+		
+		if(!docID.equals(tempDoc)){
+			HtmlToText htt = new HtmlToText();	
+			String temp = "";
+			temp = htt.Convert(htmlCode);
+			new LexicalAnalysis(docID, temp,qid);
+			result = LexicalAnalysis.ResultList;
+			tempKey = result;
+			tempDoc = docID;
+		}else{
+			result = tempKey;
+		}
+		File f = new File(path);
+		if(!f.exists() || !f.isDirectory()){
+			f.mkdir();
+		}
+		
+		try {
+			BufferedWriter bw = new BufferedWriter(new FileWriter(path+ File.separator+docID));
+		//	String []temp2 = result.split("\t");
+			for (int i = 0; i<result.size();i++){
+		//		System.out.println(result.get(i));
+				bw.write(result.get(i));
+				bw.newLine();
+			}
+			bw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		tempDoc = docID;
+		tempKey = result;
+	//	System.out.println("end\t(EntryH_W - run)");
+		return result;
+	}
+}

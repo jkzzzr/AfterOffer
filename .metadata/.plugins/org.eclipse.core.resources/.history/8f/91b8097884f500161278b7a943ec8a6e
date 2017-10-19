@@ -1,0 +1,266 @@
+package CBSumToWordList;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.util.Map;
+
+
+public class WARC018Collection 
+{
+	
+	/** has the end of the current input file been reached? */
+	protected boolean eof = false;
+	/** the input stream of the current input file */
+	public static BufferedReader br = null;
+	public static String Line = "";
+	
+	/** the length of the blob containing the document data */
+	protected long currentDocumentBlobLength = 0;
+	/** properties for the current document */
+	protected Map<String,String> DocProperties = null;
+
+	String pageId,docid;
+	String url;
+  //  WriteFile wf;
+
+	/** construct a collection from the denoted collection.spec file */
+	public WARC018Collection(String docid)
+	{
+			this.docid=docid;
+			this.nextDocument();
+
+	}
+
+	/** Move the collection to the start of the next document. */
+	public void nextDocument() {
+	//	System.out.println("a1");
+		int flag = 0;
+		boolean b = false;
+outer:	while(true){
+			try {
+				Line = br.readLine();
+				if(Line==null){
+
+			//		System.out.println("a2");
+					break outer;
+				}
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			if(Line.startsWith("WARC/0.18")){
+				flag = 0;
+				continue outer;
+			}
+			if((Line.startsWith("WARC-Type")&&Line.contains("response"))){
+				flag = 0;
+				continue outer;
+			}
+			if(Line.startsWith("WARC-TREC-ID:")){
+				String []str = Line.split("WARC-TREC-ID:");
+				this.pageId = str[1].trim();
+				b = true;
+			}
+			
+			if(b){
+				b = false;
+				int comp = this.pageId.compareTo(this.docid);
+				if(comp >0){
+					System.out.println("*****\tunfind"+this.docid+"\t"+this.pageId);
+					break outer;
+				}else if(comp < 0){
+					continue outer;
+				}else{
+				//	System.out.println("1111");
+					StringBuffer con = new StringBuffer();
+					while(true){
+						try {
+							Line = br.readLine();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						if((Line ==null)|| Line.startsWith("WARC/0.18")){
+							Content.setContent(new String(con));
+							System.out.println("\tfind:\t"+this.pageId);
+							break outer;
+						}
+						if(flag < 2){
+							if(Line.startsWith("Content-Length")){
+								flag ++;
+							}
+						}else{
+							con.append(Line+"\t");
+						}
+					}
+					
+				}
+			}	
+			
+		}
+		
+		
+/*
+	*//** Closes the collection, any files that may be open. *//*
+	public void close()
+	{
+		try{
+			br.close();
+		} catch (IOException ioe) { 
+			
+		}
+	}*/
+
+
+	/** Get the document object representing the current document. */
+/*	public void getDocument()
+	{
+		int length=(int)currentDocumentBlobLength;
+		if(length<currentDocumentBlobLength){
+			System.out.println(pageId+" overflow");
+		}
+		byte[] con=new byte[length];
+		try {
+			is.read(con);
+	//	    wf=new WriteFile(AllPath.warc_Html_P+"/"+pageId);//***************
+	//	    wf.write(new String(con));
+			Content.setContent(new String(con));
+			//wf = new WriteFile(AllPath.warc_Html_P+"/"+pageId+".txt");
+			//wf.write(Content.getContent());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally{
+	//		wf.close();
+		}
+	}*/
+	
+/*	public void skipDocument(){
+		int length=(int)currentDocumentBlobLength;
+		if(length<currentDocumentBlobLength){
+			System.out.println(pageId+" overflow"+"\t\t(WARC018Collection - skipDocument)");
+		}
+		byte[] con=new byte[length];
+		try {
+			is.read(con);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally{
+		}
+	}
+//
+*///	protected int parseHeaders(final boolean requireContentLength) throws IOException
+//	{
+//		int headerSize = 0;
+//		boolean foundContentLength = false;
+//		while(true)
+//		{
+//			final String followLine = readLine();
+//			final int len = followLine.length();
+//			headerSize += len+1;
+//			if (len == 0)
+//			{
+//				if ( (! requireContentLength) || (requireContentLength && foundContentLength))
+//					break;
+//			}
+//			final int colonIndex = followLine.indexOf(':');
+//			if (colonIndex < 0)
+//			{
+//				continue;
+//			}
+//			final String key = followLine.substring(0,colonIndex).trim().toLowerCase();
+//			final String value = followLine.substring(colonIndex+1, len).trim();
+//			DocProperties.put(key, value);
+//			if (key.equals("content-length"))
+//				foundContentLength = true;
+//		}
+//		return headerSize;
+//	}
+
+		
+		
+		/*
+		
+		
+		DocProperties = new HashMap<String, String>(15);
+		try {
+			warcrecord: while (true) {
+				if(eof){
+					break;
+				}
+				String line = readLine();
+				if (line.startsWith("WARC/0.18")) {
+					int headerSize = parseHeaders(true);
+					final long warc_response_length = Long
+							.parseLong(DocProperties.get("content-length"));
+					if (!DocProperties.get("warc-type").equals("response")) {
+						is.skip(warc_response_length);
+						continue warcrecord;
+					}
+					headerSize = parseHeaders(false);
+					this.pageId=DocProperties.get("warc-trec-id");
+					this.url=DocProperties.get("warc-target-uri");
+					currentDocumentBlobLength = warc_response_length - headerSize;
+
+					
+					if(pageId.equals(this.docid)){
+						System.out.println("fixed suceess: "+pageId);
+						this.getDocument();
+						return;
+					}else if(this.docid.compareTo(this.pageId)>0){
+						//System.out.println(pageId);
+						this.skipDocument();
+					}else{
+						System.out.println("exit with no file");
+						return ;
+					}
+				
+				}
+			}
+		} catch (Exception e) {
+
+		}*/
+	}
+
+	
+	/** read a line from the currently open InputStream is */
+	/*protected String readLine() throws IOException
+	{
+		final StringBuilder s = new StringBuilder();
+		int c = 0;char ch; char ch2;
+		while(true)
+		{
+			c = is.read();
+			if (c == -1)
+			{
+				eof = true;
+				break;
+			}
+			ch = (char)c;
+			if (ch == '\r')
+			{
+				c = is.read();
+				if (c== -1)
+				{
+					s.append(ch);
+					eof = true;
+					break;
+				}
+				ch2 = (char)c;
+				if (ch2 == '\n')
+					break;
+				s.append(ch); s.append(ch2);
+			}
+			else if (ch == '\n')
+			{
+				break;
+			}
+			else
+			{
+				s.append(ch);
+			}
+		}
+		return s.toString();
+	}*/
+}

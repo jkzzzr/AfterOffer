@@ -1,0 +1,16 @@
+
+public class NormlEntry {
+
+	public static void main(String[] args) throws Exception {
+		int no =10;
+		System.out.println("确保重新编译啊");
+		String input = "F:\\移动硬盘更新\\学术内容\\实验\\实验结果保存\\ClusterFuse\\0.5";
+	//	String input = "E:\\2014query\\result---final\\DPH_1.res.index.100.mmr.string";
+		String qrelfile = "F:\\Fusion\\2009\\qrels.final-format";
+		String output = "F:\\移动硬盘更新\\学术内容\\实验\\实验结果保存\\ClusterFuse\\0.5.eval";
+	//	String output = "E:\\2014query\\result---final\\DPH_1.res.index.100.mmr.string";
+		Ndeval.generateSummary(input, qrelfile, output);
+
+	}
+
+}

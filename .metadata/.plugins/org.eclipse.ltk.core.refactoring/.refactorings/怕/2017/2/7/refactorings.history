@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring accessors="true" comment="Delete 4 elements from project &apos;怕&apos;&#x0D;&#x0A;- Original project: &apos;怕&apos;&#x0D;&#x0A;- Original elements:&#x0D;&#x0A;     怕/src/(default package)&#x0D;&#x0A;     怕/src/CBSumToWordList&#x0D;&#x0A;     怕/src/cn.edu&#x0D;&#x0A;     怕/src/gzip&#x0D;&#x0A;- Delete subpackages" description="Delete elements" element1="/src&lt;gzip" element2="/src&lt;cn.edu.term" element3="/src&lt;cn.edu.fetchDocFromCollection" element4="/src&lt;cn.edu" element5="/src&lt;cn" element6="/src&lt;CBSumToWordList" element7="/src&lt;" elements="7" flags="589830" id="org.eclipse.jdt.ui.delete" resources="0" stamp="1487385998055" subPackages="true" version="1.0"/>
+</session>

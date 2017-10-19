@@ -1,0 +1,54 @@
+package cn.edu.fetchDocFromCollection;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class Entry {
+
+	public static long chooseCount=0;
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		
+		FileReader fr=null;
+		BufferedReader br=null;
+		
+		try {
+			br=new BufferedReader(new FileReader("/HardDisk2000/10Result"));
+			String line="";
+			String queryID="";
+			String lastQueryID="";
+			File dirFile=null;
+			int count=0;
+			while((line=br.readLine())!=null){
+				String[] eles=line.split(" ");
+				queryID=eles[0];
+				if(!queryID.equals(lastQueryID)){
+					lastQueryID=queryID;
+					count=0;
+					dirFile=new File("/HardDisk2000/diversity/tempFilePath/"+queryID);
+					dirFile.mkdir();
+				}
+				count++;
+				if(count<500){
+				String docID=eles[2];
+				String path="/HardDisk2000/ClueWeb09Dataset/"+docID.substring(10,16)+"/"+docID.substring(17,19)+".warc";
+				new WARC018Collection(path, docID,dirFile.getAbsolutePath());
+				}
+				
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+
+
+}

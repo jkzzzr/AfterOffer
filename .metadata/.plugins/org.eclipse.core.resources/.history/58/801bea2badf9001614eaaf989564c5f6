@@ -1,0 +1,122 @@
+package Structure;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.terrier.structures.BitIndexPointer;
+import org.terrier.structures.DocumentIndex;
+import org.terrier.structures.Index;
+import org.terrier.structures.Lexicon;
+import org.terrier.structures.LexiconEntry;
+import org.terrier.structures.MetaIndex;
+import org.terrier.structures.Pointer;
+import org.terrier.structures.PostingIndex;
+import org.terrier.structures.postings.IterablePosting;
+
+import K_means.AllPath;
+import K_means.K_Means;
+
+public class Create_Doc2 {
+	public static double percent = AllPath.percent;
+	private Index index = null;
+	private 	MetaIndex meta = null;
+	private DocumentIndex doi = null;
+	private PostingIndex<Pointer> directIndex = null;
+	private Lexicon<String> lexicon = null;
+	public static ArrayList<Integer> alldoclsit = new ArrayList<Integer>();
+	public static ArrayList<SingleDoc> allsinglelist = new ArrayList<SingleDoc>();
+	
+	public static void main(String args[]) throws Exception{
+		
+	}
+	
+	public Create_Doc2() {
+		this.index = Index.createIndex();
+		this.meta = index.getMetaIndex();
+		this.doi = index.getDocumentIndex();
+		this.directIndex = (PostingIndex<Pointer>)index.getDirectIndex();
+		this.lexicon = index.getLexicon();
+	}
+
+	/**
+	 * 负责对上一步已经初始化了的alldoclist进行重筛选
+	 * @return
+	 * @throws Exception
+	 */
+	public ArrayList<SingleDoc> init_single_list() throws Exception{
+		System.out.println("init_single_list");
+		ArrayList<SingleDoc> result = new ArrayList<SingleDoc>();
+		int docNumber = doi.getNumberOfDocuments();
+		System.out.println(docNumber+"");
+		for (int i = 0; i < docNumber; i++){
+			String docid = getdocString(i);
+			if (!isChoosen(docid)){
+				continue;
+			}
+			this.alldoclsit.add(i);
+			
+			
+			IterablePosting pi = directIndex.getPostings((BitIndexPointer)doi.getDocumentEntry(i));
+			while (pi.next()!=IterablePosting.EOL){
+				Map.Entry<String,LexiconEntry> leeEntry = lexicon.getLexiconEntry(pi.getId());
+				int freq = pi.getFrequency();
+				String termString = leeEntry.getKey();
+				hmap.put(termString, (double)freq);
+			}
+	//		SingleDoc single = new SingleDoc(hmap, wordCount);
+	//		result.add(single);
+	//		K_Means.AllDocMap.put(docid, single);
+		}
+		ArrayList<String> aaaList = new ArrayList<String>();
+/*		for (String string :K_Means.AllDocMap.keySet()){
+			aaaList.add(string);
+		}*/
+		alldoclsit = aaaList;
+		System.out.println("@Create_Doc2 - init_single_list()\t alldoclsit.size(): "+ alldoclsit.size());
+	//	System.out.println("@Create_Doc2 - init_single_list()\tK_Means.AllDocMap.size() : "+ K_Means.AllDocMap.size());
+		this.allsinglelist = result;
+		return result;
+	}
+
+	private boolean isChoosen(String docnoString){
+		double rand = Math.random();
+		if (rand < percent){
+			return true;
+		}
+		return false;
+	}
+
+	private String  getdocString(int docno) throws Exception{
+		String docString = meta.getItem("docno", docno);
+		return docString;
+	}
+	/**
+	 * 根绝文档ID，获取该文档的信息
+	 * @param docno
+	 * @return
+	 * @throws Exception
+	 */
+	public SingleDoc getDocItemList(int docno) throws Exception{
+		PostingIndex<Pointer>directIndex = (PostingIndex<Pointer>)index.getDirectIndex();
+		HashMap<Integer, Double>hmap = new HashMap<Integer, Double>();
+		int wordCount = 0;
+		IterablePosting pi = directIndex.getPostings((BitIndexPointer)doi.getDocumentEntry(docno));
+		while (pi.next()!=IterablePosting.EOL){
+			int freq = pi.getFrequency();
+			hmap.put(pi.getId(), (double)freq);
+			wordCount +=freq;
+		}
+		SingleDoc single = new SingleDoc(hmap, wordCount);
+		return single;
+	}
+	
+	public String getItemString(int termno){
+		Map.Entry<String,LexiconEntry> leeEntry = lexicon.getLexiconEntry(termno);
+		String termString = leeEntry.getKey();
+			
+	}
+}

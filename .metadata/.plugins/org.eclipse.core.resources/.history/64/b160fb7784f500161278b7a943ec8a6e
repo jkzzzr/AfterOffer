@@ -1,0 +1,44 @@
+package cn.edu.term;
+
+/**
+ * implement the quicksort algorithm by java,the data type of each element is string
+ * ��С��������
+ * @author jiangsu
+ *
+ */
+
+public class QuickSort {
+	String data[];
+	public QuickSort(String data[]){
+		this.data=data;
+	}
+	
+	private int partition(String sortArray[], int low, int hight) {
+		double key = Double.parseDouble(sortArray[low].split("\t")[1]);
+		String keyStr = sortArray[low];
+		while (low < hight) {
+			while (low < hight && Double.parseDouble(sortArray[hight].split("\t")[1]) <= key)
+				hight--;
+			sortArray[low] = sortArray[hight];
+			while (low < hight && Double.parseDouble(sortArray[low].split("\t")[1]) >= key)
+				low++;
+			sortArray[hight] = sortArray[low];
+		}
+		sortArray[low] = keyStr;
+		return low;
+	}
+    /**
+     * ����keyֵ����
+     * @param low
+     * @param hight
+     * @return
+     */
+	public String[] sort(int low, int hight) {
+		if (low < hight) {
+			int result = partition(data, low, hight);
+			sort(low, result - 1);
+			sort(result + 1, hight);
+		}
+		return data;
+	}
+}

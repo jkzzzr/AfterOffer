@@ -1,0 +1,51 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.StringTokenizer;
+
+public class Kick {
+
+	public static void main(String[] args) throws IOException {
+		BufferedWriter bWriter  = new BufferedWriter(new FileWriter("/home/lee/DATA/data/new-2011"));
+
+		BufferedReader bReader1 = new BufferedReader(new FileReader("/home/lee/DATA/data/left-2011"));
+		ArrayList<String> aList = new ArrayList<>();
+		String temp = "";
+		while ((temp = bReader1.readLine())!=null){
+			aList.add(temp);
+		}
+		
+		BufferedReader bReader2 = new BufferedReader(new FileReader("/home/lee/DATA/data/20118.Combsum051460"));
+		temp = "";
+		int tempQid = 0;
+		while ((temp = bReader2.readLine())!=null){
+			if (aList.contains(temp)){
+				continue;
+			}
+			StringTokenizer stringTokenizer = new StringTokenizer(temp);
+			stringTokenizer.nextToken();
+			stringTokenizer.nextToken();stringTokenizer.nextToken();
+			int count = Integer.parseInt(stringTokenizer.nextToken());
+			if (count >1000){
+				continue;
+			}
+			/*if (qid != tempQid){
+				qid = tempQid;
+				count = 0;
+			}
+			count ++;
+			if (count >=1000){
+				continue;
+			}*/
+			bWriter.write(temp+"\n");
+		}
+		bWriter.close();
+		bReader1.close();
+		bReader2.close();
+
+	}
+
+}

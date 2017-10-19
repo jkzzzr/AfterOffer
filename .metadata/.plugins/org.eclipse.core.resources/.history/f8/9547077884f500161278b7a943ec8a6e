@@ -1,0 +1,43 @@
+package CBSumToWordList;
+
+import java.io.File;
+
+public class AllPath {
+	public static boolean isEasy = false;
+	public static boolean isGZip = true;
+	/**
+	 * path of html code which getted from the page of warc
+	 * (WARC018Collection - getDocument)
+	 */
+//	public static String warc_Html_P1= "/media/369e402a-3322-4a63-bc49-6fa2e843a7fe/Lee/MyFusion/wordFormat";
+	/**
+	 *  (CBSum_To_WordList - CBSPath)
+	 */
+	public static String BasePath = "/media/369e402a-3322-4a63-bc49-6fa2e843a7fe/Lee/MyFusion/Extract/";
+	public static String CBSPath = "/home/lee/DATA/data/left-2011";
+	public static String WordList_perDoc_Path="/home/lee/音乐/WordList_perDoc_Path";
+
+	public static String errorPath = "/home/lee/DATA/"+"error";
+	/**
+	 * 
+	 * file list of result
+	 * (CBSum_To_Wirdlist - outPath)
+	 */
+//	public static String Base_wordListPath = "/media/369e402a-3322-4a63-bc49-6fa2e843a7fe/Lee/MyFusion/Result/wordListPath";
+	public static String stopwordPath = "/home/lee/DATA/stopWord.txt";
+	public static String wordListPath = "/media/369e402a-3322-4a63-bc49-6fa2e843a7fe/Lee/MyFusion/Result/wordListPath";
+
+//STEP 2---------------------------------
+	/**
+	 * basic warc file path
+	 * (ExtractEachDoc2 - ExtractEachDoc2)
+	 */
+//	public static String sourcePath = "/run/media/lee/5422d6b7-8147-4cb9-9fdb-7982a9b5fa3f/Clueweb09partA";
+//	public static String sourcePath = "/home/lee/视频";
+  public static String sourcePath = "/run/media/lee/clueweb09_1of2";
+	public static String LDAoutPath = "F:/Fusiondata/ResultBox/LDAResult";
+	
+	
+	public static String PM2inputPath = LDAoutPath;
+	public static String PM2out2Path = "F:/Fusiondata/ResultBox/PM2Result";
+}

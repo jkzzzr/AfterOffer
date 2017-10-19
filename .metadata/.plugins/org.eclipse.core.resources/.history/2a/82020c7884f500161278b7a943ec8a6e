@@ -1,0 +1,41 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.Iterator;
+import java.util.StringTokenizer;
+import java.util.TreeSet;
+
+public class SortCombSum {
+
+	/**
+	 * 对所有combsum文档去重排序
+	 * @param args
+	 * @throws Exception
+	 */
+	public static void main(String[] args) throws Exception {
+		BufferedReader bReader = new BufferedReader(new FileReader("/home/lee/DATA/data/20098.Combsum051460"));
+		BufferedWriter bWriter = new BufferedWriter(new FileWriter("/home/lee/DATA/data/2009--sort", true));
+		System.out.println("START");
+		TreeSet<String> ts = new TreeSet<>();
+		String temp = "";
+		while ((temp = bReader.readLine())!=null){
+			StringTokenizer st = new StringTokenizer(temp);
+			st.nextToken();
+			st.nextToken();
+			String docid = st.nextToken();
+			ts.add(docid);
+		}
+		System.out.println("READ_END");
+		bReader.close();
+		Iterator< String> it = ts.iterator();
+		while (it.hasNext()){
+			bWriter.write(it.next()+"\n");
+		}
+		
+		bWriter.close();
+		System.out.println("END");
+	}
+
+}

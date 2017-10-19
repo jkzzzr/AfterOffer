@@ -1,0 +1,917 @@
+package p1;
+
+
+import datastruct.*;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Hashtable;
+
+import p1.Ndeval.rList;
+
+
+
+public class LCHeuristic extends LC{
+
+	public double[][] performance;
+	public double[][] dissimilarity;
+	public double[][] diversity;
+	public LCHeuristic(int numofsystem, int numofquery, int startquery,
+			Hashtable<String, Integer> sys) {
+		super(numofsystem, numofquery, startquery, sys);
+		this.performance=new double[5][numofsystem];
+		this.dissimilarity=new double[5][numofsystem];
+		this.diversity=new double[5][numofsystem];
+	}
+	
+	/**
+	 * 从由评价程序评价后获得的输出中获得所要的某个指标下的performance
+	 * @param evalinput
+	 * @throws IOException 
+	 */
+	public void setPerformanceFromEvalResult(String evalinputs,int metricid) throws IOException{
+		double[][] sysperf=new double[numofquery][numofsystem];
+		File fpath=new File(evalinputs);
+		File[] files=fpath.listFiles();
+		String[] items;
+		BufferedReader reader=null;
+		for(File file:files){
+			reader=new BufferedReader(new FileReader(file));
+			reader.readLine();//第一行不要
+			int mid=metricid+1;
+			for(int i=0;i<numofquery;i++){
+				items=reader.readLine().split(",");
+				if(systems.get(items[0])==null){
+					break;
+				}	
+				sysperf[i][systems.get(items[0])]=Double.parseDouble(items[mid]);
+			}
+			reader.close();		
+		}
+		//compute group performance on all query
+		for(int groupid=0;groupid<5;groupid++){
+			for(int sid=0;sid<numofsystem;sid++){
+				for(int qid=0;qid<numofquery;qid++){
+					if(!(qid>=groupid*10 && qid<(groupid+1)*10)){
+						performance[groupid][sid]+=sysperf[qid][sid];
+					}
+				}
+				performance[groupid][sid]/=40;
+			}				
+		}	
+	}
+	/**
+	 * 利用Ndeval工具评价检索结果
+	 * @param inputs
+	 * @param qrelinput
+	 * @param metricid 评价指标字符串（注意大小写） 
+	 * @throws Exception
+	 * @throws IOException
+	 */
+	public double[][] setPerformanceFromNdeval(File[] inputs,String qrelinput,String metricid) throws Exception, IOException{
+		double[][] p=new double[numofsystem][numofquery];
+	//	System.out.println(numofsystem+"\t"+numofquery);
+		//获取多个检索结果在一个指标上所有查询下的评价值
+		Ndeval nd=new Ndeval();
+		ArrayList<rList> qrl=nd.processQrels(qrelinput);
+		System.out.println(inputs.length);
+		for(int i=0;i<inputs.length;i++){
+			ArrayList<rList> rrl=nd.processRun(inputs[i], false);
+			nd.applyQrels(qrl, rrl);
+			double []xxx = nd.statisticalAMetric(rrl, null, metricid);
+			System.out.println(i+"\t"+xxx.length);
+			p[i]=nd.statisticalAMetric(rrl, null, metricid);
+		}
+		//根据交叉验证方式分组，同一训练数据下的查询，性能权重取多个查询的均值
+		for(int group=0;group<5;group++){
+			for(int sid=0;sid<numofsystem;sid++){
+				for(int qid=0;qid<numofquery;qid++){
+					if(qid<(10*group) || qid>(10*group+9)){
+						this.performance[group][sid]+=p[sid][qid];
+					}				
+				}
+				performance[group][sid]/=40;
+			}
+		}	
+		return p;
+	}
+
+	public double[][][] setDissimilarity_distance(File[] inputs,int top) throws IOException{
+		//计算所有query下两两之间的距离
+		double[][][] distance=new double[numofsystem][numofsystem][numofquery];
+		BufferedReader[] readers=new BufferedReader[numofsystem];
+		//open file reader
+		for(int i=0;i<numofsystem;i++){
+			readers[i]=new BufferedReader(new FileReader(inputs[i]));
+			bufferline[i]=new String(readers[i].readLine());	//for the first line
+		}
+		for(int qid=0;qid<numofquery;qid++){
+			ResultList[] grouplists = new ResultList[numofsystem];
+			for(int i=0;i<numofsystem;i++){		
+				grouplists[i]=getResultList(readers[i], i,true);
+			}
+			for(int i=0;i<numofsystem;i++){
+				for(int j=i+1;j<numofsystem;j++){
+					distance[i][j][qid]=distance[j][i][qid]=computeDistance(grouplists[i],grouplists[j],top);
+				}
+			}	
+		}				
+		//close the files
+		for(int i=0;i<numofsystem;i++){
+			readers[i].close();
+		}
+		//平均diss（i,j）,分组计算diversity权重
+		for(int group=0;group<5;group++){
+			for(int i=0;i<numofsystem;i++){
+				for(int j=0;j<numofsystem;j++){
+						for(int q=0;q<numofquery;q++){
+							if(i!=j && (q<(10*group)||q>(10*group+9))){
+									this.dissimilarity[group][i]+=distance[i][j][q];
+							}
+						}
+					}
+				this.dissimilarity[group][i]/=(40*(numofsystem-1));
+			}
+		}	
+		return distance;
+	}
+	/**
+	 * 距离的归一化存在问题，还需调整
+	 * @param lista
+	 * @param listb
+	 * @param top
+	 * @return
+	 */
+	private double computeDistance(ResultList lista,ResultList listb, int top) {
+		int lengtha=Math.min(lista.list.size(), top);
+		int lengthb=Math.min(listb.list.size(), top);
+		String docid;
+		int rank;
+		Hashtable<String, int[]> ranklist=new Hashtable<>();
+		for(int i=0;i<lengtha;i++){//i<lengtha
+			int[] ranks={lista.list.get(i).rank,-1};
+			ranklist.put(lista.list.get(i).docid, ranks);
+		}
+		for(int j=0;j<lengthb;j++){//j<lengthb
+			docid=listb.list.get(j).docid;
+			rank=listb.list.get(j).rank;
+			if(ranklist.containsKey(docid)){
+				int[] ranks=ranklist.get(docid);
+				ranks[1]=rank;
+				ranklist.remove(docid);
+				ranklist.put(docid, ranks);
+			}else{
+				int[] ranks={-1,rank};
+				ranklist.put(docid, ranks);
+			}
+		}
+		//compute the dissimilarity of two lists
+		int sum_both=0,num_both=0;
+		int sum_biaA=0,num_biaA=0;
+		int sum_biaB=0,num_biaB=0;
+		for(int[] ranks:ranklist.values()){
+			if(ranks[0]>=0 && ranks[1]>=0){
+				sum_both+=Math.abs(ranks[0]-ranks[1]);
+				num_both++;
+			}
+			if(ranks[0]>=0 && ranks[1]<0){
+				sum_biaA+=Math.abs(ranks[0]-(lengthb+num_biaA));
+				num_biaA++;
+			}
+			if(ranks[0]<0 && ranks[1]>=0){
+				sum_biaB+=Math.abs(ranks[1]-(lengtha+num_biaB));
+				num_biaB++;
+			}
+		}
+		double diss=sum_both+sum_biaA+sum_biaB;
+		double norm=1.0*(num_both+num_biaA+num_biaB)*Math.max(lengtha, lengthb);
+		diss/=norm;
+		return diss;
+	}
+	public void setDissimilarity_reference(File[] inputs,int top) throws IOException{
+		//计算所有query下某个系统与其他系统的距离
+		double[][] reference=new double[numofquery][numofsystem];
+		BufferedReader[] readers=new BufferedReader[numofsystem];
+		//open file reader
+		for(int i=0;i<numofsystem;i++){
+			readers[i]=new BufferedReader(new FileReader(inputs[i]));
+			bufferline[i]=new String(readers[i].readLine());	//for the first line
+		}
+		for(int qid=0;qid<numofquery;qid++){
+			ResultList[] grouplists = new ResultList[numofsystem];
+			for(int i=0;i<numofsystem;i++){		
+				grouplists[i]=getResultList(readers[i], i,true);
+			}
+			reference[qid]=computeReference(grouplists,top);
+		}
+		//grouping
+		for(int group=0;group<5;group++){
+			for(int si=0;si<numofsystem;si++){
+				for(int qid=0;qid<numofquery;qid++){
+					if(qid<(10*group) || qid>(10*group+9)){
+						this.dissimilarity[group][si]+=reference[qid][si];
+					}
+				}
+				this.dissimilarity[group][si]/=40;
+			}
+		}
+	}
+	private double[] computeReference(ResultList[] grouplists, int top) {
+		double[] ref=new double[numofsystem];
+		double[] v=new double[numofsystem];
+		BinaryTree bt=new BinaryTree();	
+		//get statistic information	 
+		String docid; 
+		for (int sid=0; sid<numofsystem; sid++){
+			for (int i=0; i<Math.min(grouplists[sid].list.size(), top); i++){
+				docid=grouplists[sid].list.get(i).docid; 
+				bt.search_add(docid, 1);
+			}
+		} 
+		//calculating reference for all system in a query
+		for (int sid=0; sid<numofsystem; sid++){
+			int length=Math.min(grouplists[sid].list.size(),top);
+			for (int i=0; i<length; i++){
+				docid=grouplists[sid].list.get(i).docid; 
+				double u=bt.search(docid).getScore();
+				v[sid]+=(u-1);
+
+			}
+			ref[sid]=1.0-(v[sid]/(length*(numofsystem-1)));
+		}
+		return ref;
+	}
+
+	/**
+	 * C:补充性权重计算
+	 * @param inputs
+	 * @param qrelinput
+	 * @param metricid
+	 * @param top
+	 * @throws Exception
+	 * @throws IOException
+	 */
+	public double[][][] setDiversity_0(File[] inputs,String qrelinput,String metricid,int top) throws Exception, IOException{	
+		//获取所有成员不同query下list的评价结果
+		double[][] p=new double[numofsystem][numofquery];//存放components在单个query上的性能
+		Ndeval nd=new Ndeval();
+		ArrayList<rList> qrl=nd.processQrels(qrelinput);
+		for(int i=0;i<inputs.length;i++){
+			ArrayList<rList> rrl=nd.processRun(inputs[i], false);
+			nd.applyQrels(qrl, rrl);
+			p[i]=nd.statisticalAMetric(rrl, null, metricid);
+		}
+		
+		//计算每个结果对在所有query上的互补性
+		double[][][] b=new double[numofsystem][numofsystem][numofquery];//存放所有结果对上单个query上的互补性
+		double i_ri,i_rj,i_super;
+		BufferedReader[] readers=new BufferedReader[numofsystem];
+		BufferedReader reader=null;
+		//open file reader
+		for(int i=0;i<numofsystem;i++){
+			readers[i]=new BufferedReader(new FileReader(inputs[i]));
+			bufferline[i]=new String(readers[i].readLine());	
+		}
+		reader=new BufferedReader(new FileReader(qrelinput));
+		bufferqrel=new String(reader.readLine());
+		//for all query
+		for(int q=0;q<numofquery;q++){
+			QrelsList qrelsList = getQrelsList(reader,true);//get a query qrels list
+			BinaryTree qltr=generateQrelTree(qrelsList);
+			ResultList[] grouplists = new ResultList[numofsystem];
+			for(int i=0;i<numofsystem;i++){
+				grouplists[i]=getResultList(readers[i],i,true);
+			}//get the list in order in the files
+			while(qrelsList.getTopic()>this.startquery+q){
+				q++;
+				//get the lists, no need to deal with
+				for(int i=0;i<numofsystem;i++){		
+					grouplists[i]=getResultList(readers[i], i,true);
+				}
+			}
+			for(int i=0;i<numofsystem-1;i++){
+				for(int j=i+1;j<numofsystem;j++){
+					i_ri=p[i][q];
+					i_rj=p[j][q];
+					if(i==0 && j==1 && q==5){
+						System.out.println();
+					}
+					i_super=makeSuperResult(grouplists[i],grouplists[j],qltr,metricid,top);
+					if(i_super>0){
+						b[i][j][q]=(i_super-i_rj)/i_super;
+						b[j][i][q]=(i_super-i_ri)/i_super;
+					}		
+				}
+			}
+		}
+		//close the files
+		for(int i=0;i<numofsystem;i++){
+			readers[i].close();
+		}
+		reader.close();
+		
+		//平均B（i,j）,分组计算diversity权重
+		for(int group=0;group<5;group++){
+			for(int i=0;i<numofsystem;i++){
+				for(int j=0;j<numofsystem;j++){
+					if(i!=j){
+						for(int q=0;q<numofquery;q++){		
+							if(q<(10*group)||q>(10*group+9)){
+								this.diversity[group][i]+=b[i][j][q];
+							}								
+						}
+					}	
+				}
+				this.diversity[group][i]/=(40*(numofsystem-1));
+			}
+		}	
+		return b;
+	}
+	/**
+	 * 构造整体上的超级结果用作补充性计算，并设定补充性权重
+	 * @param inputs
+	 * @param qrelinput
+	 * @param metricid
+	 * @param top
+	 * @return
+	 * @throws Exception
+	 * @throws IOException
+	 */
+	public double[][] setDiversity_TS(File[] inputs,String qrelinput,String metricid,int top) throws Exception, IOException{	
+		//获取所有成员不同query下list的评价结果
+		double[][] p=new double[numofsystem][numofquery];//存放components在单个query上的性能
+		Ndeval nd=new Ndeval();
+		ArrayList<rList> qrl=nd.processQrels(qrelinput);
+		for(int i=0;i<inputs.length;i++){
+			ArrayList<rList> rrl=nd.processRun(inputs[i], false);
+			nd.applyQrels(qrl, rrl);
+			p[i]=nd.statisticalAMetric(rrl, null, metricid);
+		}
+		
+		//计算每个结果对在所有query上的互补性
+		double[][] b=new double[numofsystem][numofquery];//存放所有查询上不同系统相对超级结果的补充性
+		double i_ri,i_super;
+		BufferedReader[] readers=new BufferedReader[numofsystem];
+		BufferedReader reader=null;
+		//open file reader
+		for(int i=0;i<numofsystem;i++){
+			readers[i]=new BufferedReader(new FileReader(inputs[i]));
+			bufferline[i]=new String(readers[i].readLine());	
+		}
+		reader=new BufferedReader(new FileReader(qrelinput));
+		bufferqrel=new String(reader.readLine());
+		//for all query
+		for(int q=0;q<numofquery;q++){
+			QrelsList qrelsList = getQrelsList(reader,true);//get a query qrels list
+			BinaryTree qltr=generateQrelTree(qrelsList);
+			ResultList[] grouplists = new ResultList[numofsystem];
+			for(int i=0;i<numofsystem;i++){
+				grouplists[i]=getResultList(readers[i],i,true);
+			}//get the list in order in the files
+			while(qrelsList.getTopic()>this.startquery+q){
+				q++;
+				//get the lists, no need to deal with
+				for(int i=0;i<numofsystem;i++){		
+					grouplists[i]=getResultList(readers[i], i,true);
+				}
+			}
+			
+			i_super=makeSuperResultfromAll(grouplists, qltr, metricid, top);
+			for(int i=0;i<numofsystem;i++){
+				i_ri=p[i][q];				
+				if(i_super>0){
+					b[i][q]=(i_super-i_ri)/i_super;
+				}
+			}
+		}
+		//close the files
+		for(int i=0;i<numofsystem;i++){
+			readers[i].close();
+		}
+		reader.close();
+		
+		//平均B（i,j）,分组计算diversity权重
+		for(int group=0;group<5;group++){
+			for(int i=0;i<numofsystem;i++){
+				for(int q=0;q<numofquery;q++){		
+					if(q<(10*group)||q>(10*group+9)){
+						this.diversity[group][i]+=b[i][q];
+					}								
+				}
+				this.diversity[group][i]/=40;
+			}			
+		}	
+		return b;
+	}
+	/**
+	 * 生成关于文档相关性的搜索树
+	 * @param qrelsList
+	 * @return
+	 */
+	public BinaryTree generateQrelTree(QrelsList qrelsList) {
+		BinaryTree bt=new BinaryTree();
+		for(int i=0;i<qrelsList.getList().size();i++){
+			String docid=qrelsList.getList().get(i).getDocid();
+			int subtopic=qrelsList.getList().get(i).getSubtopic();
+			//默认relevance=1，且qrelslist中只包含相关的
+			bt.search_add(docid, subtopic+",");
+		}
+		return bt;
+	}
+	private double makeSuperResult(ResultList ri,ResultList rj, BinaryTree qltr,String metricid,int top) throws Exception {
+		String temp_superRun="temp_superRun";
+		String temp_superQrel="temp_superQrel";
+		FileWriter w_run=new FileWriter(temp_superRun);
+		FileWriter w_qrel=new FileWriter(temp_superQrel);
+		int li=Math.min(ri.list.size(),top);
+		int lj=Math.min(rj.list.size(),top);
+		for(int i=0;i<Math.max(li, lj);i++){
+			//构造超级结果
+			String runline="1\tQ0\tdocid-"+i+"\t"+i+"\t0.0\ttemprun\n";
+			w_run.write(runline);
+			
+			//构造超级结果对应的相关性评价文件
+			int[] subtopics_i=null,subtopics_j=null;
+			if(i<li){
+				subtopics_i=SubtopicsFromAResult(ri.list.get(i).docid,qltr);
+			}
+			if(i<lj){
+				subtopics_j=SubtopicsFromAResult(rj.list.get(i).docid, qltr);
+			}
+			int[] sub_super=new int[10];
+			if(subtopics_i!=null){
+				for(int si=0;si<subtopics_i.length;si++){
+					sub_super[subtopics_i[si]]=1;
+				}
+			}
+			if(subtopics_j!=null){
+				for(int si=0;si<subtopics_j.length;si++){
+					sub_super[subtopics_j[si]]=1;
+				}
+			}
+			for(int si=0;si<10;si++){
+				if(sub_super[si]>0){
+					w_qrel.write("1 "+si+" docid-"+i+" 1\n");
+				}
+			}			
+		}
+		w_run.close();
+		w_qrel.close();
+		//评价超级结果
+		Ndeval n=new Ndeval();
+		ArrayList<rList> rrl=n.processRun(new File(temp_superRun), false);
+		ArrayList<rList> qrl=n.processQrels(temp_superQrel);
+		n.applyQrels(qrl, rrl);	
+		return n.statisticalAMetric(rrl, null, metricid)[0];
+	}
+	/**
+	 * 由多个系统构造整体Super Result(由于指标@20,构造长度设为100，不需要所有的)
+	 * @param r
+	 * @param qltr
+	 * @param metricid
+	 * @param top
+	 * @return
+	 * @throws Exception
+	 */
+	private double makeSuperResultfromAll(ResultList[] r, BinaryTree qltr,String metricid,int top) throws Exception {
+		String temp_superRun="temp_superRun";
+		String temp_superQrel="temp_superQrel";
+		FileWriter w_run=new FileWriter(temp_superRun);
+		FileWriter w_qrel=new FileWriter(temp_superQrel);
+		for(int l=0;l<100;l++){//for each rank(Top 100)
+			//construct the super result
+			String runline="1\tQ0\tdocid-"+l+"\t"+l+"\t0.0\ttemprun\n";
+			w_run.write(runline);
+			//construct the qrel file for the super result
+			int[] superrel=new int[10];
+			for(int s=0;s<r.length;s++){//browse doc in all results at the same rank
+				int rsize=r[s].list.size();
+				if(l<rsize){
+					result doc=r[s].list.get(l);
+					int[] subtopics=SubtopicsFromAResult(doc.docid,qltr);
+					if(subtopics!=null){
+						for(int i=0;i<subtopics.length;i++){
+							superrel[subtopics[i]]=1;
+						}
+					}		
+				}
+			}
+			for(int i=0;i<10;i++){
+				if(superrel[i]>0){
+					w_qrel.write("1 "+i+" docid-"+l+" 1\n");
+				}
+			}
+		}
+		w_run.close();
+		w_qrel.close();	
+		
+		//evaluate super result with the constructed qrel file
+		Ndeval n=new Ndeval();
+		ArrayList<rList> rrl=n.processRun(new File(temp_superRun), false);
+		ArrayList<rList> qrl=n.processQrels(temp_superQrel);
+		n.applyQrels(qrl, rrl);	
+		return n.statisticalAMetric(rrl, null, metricid)[0];
+	}
+	private double makeSuperResultFromNdeval(){
+		Ndeval nd=new Ndeval();
+		return 0;
+	}
+	/**
+	 * 查找文档所覆盖的子主题
+	 * @param docid
+	 * @param qltr 
+	 * @return 若相关则返回子主题数组，否则返回null
+	 */
+	private int[] SubtopicsFromAResult(String docid, BinaryTree qltr) {
+		BinaryTreeNode  btn=qltr.search(docid);
+		if(btn==null){
+			return null;
+		}
+		String part=btn.getPartscore();
+		int l=part.length();
+		if(l<=1)
+			return null;
+		else{
+			String[] sub=part.split(",");
+			int[] subtopics=new int[sub.length];
+			for(int i=0;i<sub.length;i++){
+				subtopics[i]=Integer.parseInt(sub[i]);
+			}
+			return subtopics;
+		}
+	}
+	public void setDiversity_twofuse(File[] inputs,String qrelinput,String metricid,int top) throws Exception, IOException{	
+		//获取所有成员不同query下list的评价结果
+		double[][] p=new double[numofsystem][numofquery];//存放components在单个query上的性能
+		Ndeval nd=new Ndeval();
+		ArrayList<rList> qrl=nd.processQrels(qrelinput);
+		for(int i=0;i<inputs.length;i++){
+			ArrayList<rList> rrl=nd.processRun(inputs[i], false);
+			nd.applyQrels(qrl, rrl);
+			p[i]=nd.statisticalAMetric(rrl, null, metricid);
+		}
+		
+		//计算每个结果对在所有query上的互补性
+		double[][][] b=new double[numofsystem][numofsystem][numofquery];//存放所有结果对上单个query上的互补性
+		double i_ri,i_rj,i_super;
+
+		for(int i=0;i<numofsystem-1;i++){
+			for(int j=i+1;j<numofsystem;j++){
+				//两两融合
+				String tempfuse="tempfuse";
+//				LCFusion(inputs[i], inputs[j],i,j,tempfuse);
+				//评价融合后的结果
+				ArrayList<rList> rrl=nd.processRun(new File(tempfuse), false);
+//				qrl=nd.processQrels(qrelinput);
+				nd.applyQrels(qrl, rrl);		
+				b[i][j]=b[j][i]=nd.statisticalAMetric(rrl, null, metricid);
+			}
+		}
+		
+		//for all query
+		for(int q=0;q<numofquery;q++){
+			for(int i=0;i<numofsystem-1;i++){
+				for(int j=i+1;j<numofsystem;j++){
+					i_ri=p[i][q];
+					i_rj=p[j][q];
+					i_super=b[i][j][q];
+					if(i_super>0){
+						b[i][j][q]=(i_super-i_rj)/i_super;
+						b[j][i][q]=(i_super-i_ri)/i_super;
+					}		
+				}
+			}
+		}
+		
+		//平均B（i,j）,分组计算diversity权重
+		for(int group=0;group<5;group++){
+			for(int i=0;i<numofsystem;i++){
+				for(int j=0;j<numofsystem;j++){
+					if(i!=j){
+						for(int q=0;q<numofquery;q++){		
+							if(q<(10*group)||q>(10*group+9)){
+								this.diversity[group][i]+=b[i][j][q];
+							}								
+						}
+					}	
+				}
+				this.diversity[group][i]/=(40*(numofsystem-1));
+			}
+		}	
+
+	}
+	public void setDiversity_relsimilarity(File[] inputs,String qrelinput,int top) throws Exception, IOException{				
+		//计算每个结果对在所有query上的相关文档相似性
+		double[][][] b=new double[numofquery][numofsystem][numofsystem];//存放所有结果对上单个query上的相关文档相似性
+		ResultList[] grouplists=new ResultList[numofsystem];
+		BufferedReader[] readers=new BufferedReader[numofsystem];
+		BufferedReader qreader=new BufferedReader(new FileReader(qrelinput));
+		//open file reader
+		for(int i=0;i<numofsystem;i++){
+			readers[i]=new BufferedReader(new FileReader(inputs[i]));
+			bufferline[i]=new String(readers[i].readLine());	
+		}
+		bufferqrel=new String(qreader.readLine());
+		
+		//for all query
+		for(int qid=0;qid<numofquery;qid++){
+			//:get the lists
+			for(int i=0;i<numofsystem;i++){		
+				grouplists[i]=getResultList(readers[i],i,true);
+				if( i>0 && grouplists[i].topic!=grouplists[i-1].topic)
+					throw new Exception("qid不一致，存在input的某个query缺失");			
+			}
+			//get a query's qrellist
+			QrelsList qrelslist=getQrelsList(qreader,true);
+			//if the query in qrelsfile is missing...
+			while(qrelslist.getTopic()>this.startquery+qid){
+				qid++;
+				//get the lists, no need to deal with
+				for(int i=0;i<numofsystem;i++){		
+					grouplists[i]=getResultList(readers[i], i,true);
+				}
+			}
+			
+			BinaryTree bt = new BinaryTree();//LN
+			for (int sid=0; sid<numofsystem; sid++){
+				for (int i=0; i<grouplists[sid].list.size(); i++){
+					String docid=grouplists[sid].list.get(i).docid;
+					String partscore=sid+","+grouplists[sid].list.get(i).rank+",";
+					bt.search_add(docid, partscore);
+				}
+			}
+			for(int i=0;i<qrelslist.getList().size();i++){
+				String docid=qrelslist.getList().get(i).getDocid();
+				bt.search_add(docid, 1);
+			}
+			b[qid]=relevantSimilarity(grouplists,bt, top);
+		}
+				
+		//close the files
+		for(int i=0;i<numofsystem;i++){
+			readers[i].close();
+		}
+		qreader.close();
+		
+		//平均B（i,j）,分组计算diversity权重
+		for(int group=0;group<5;group++){
+			for(int i=0;i<numofsystem;i++){
+				for(int j=0;j<numofsystem;j++){
+					if(i!=j){
+						for(int q=0;q<numofquery;q++){		
+							if(q<(10*group)||q>(10*group+9)){
+								this.diversity[group][i]+=b[q][i][j];
+							}								
+						}
+					}	
+				}
+				this.diversity[group][i]/=(40*(numofsystem-1));
+			}
+		}	
+
+	}
+
+	private double[][] relevantSimilarity(ResultList[] grouplists, BinaryTree bt,int top) {
+		double[][] rs=new double[numofsystem][numofsystem];
+		for(int i=0;i<numofsystem-1;i++){
+			for(int j=i+1;j<numofsystem;j++){
+				//两两计算
+				double m1=0,m2=0,m=0;
+				for(int k=0;k<Math.min(top, grouplists[i].list.size());k++){//deal with ri
+					double t=relSimiScore(grouplists[i].list.get(k).docid,i,j,bt);
+					if(t>0){
+						m1+=t;
+						m+=t;
+					}
+				}
+				for(int k=0;k<Math.min(top, grouplists[j].list.size());k++){//deal with rj
+					double t=relSimiScore(grouplists[j].list.get(k).docid,j,i,bt);
+					if(t>0){
+						m2+=t;
+						m+=t;
+					}else if(t<0){
+						m+=(0-t);
+					}
+				}
+				//评价融合后的结果
+				if(m!=0){
+				rs[i][j]=(m1)/(m);
+				rs[j][i]=(m2)/(m);
+				}
+			}
+		}
+		return rs;
+	}
+
+	private double relSimiScore(String docid, int self, int other, BinaryTree bt) {
+		BinaryTreeNode btn=bt.search(docid);
+		if(btn!=null){
+			String[] items=btn.getPartscore().split(",");
+			int rank_s=-1,rank_o=-1;
+			double t=btn.getScore();
+			if(t==0){
+				return 0;
+			}
+			for(int i=0;i<items.length;i++){
+				int sid=Integer.parseInt(items[i]);
+				if(sid==self){
+					rank_s=Integer.parseInt(items[++i]);
+				}else if(sid==other){
+					rank_o=Integer.parseInt(items[++i]);
+				}else{
+					++i;
+				}
+			}
+			if(rank_s>=0){
+				if(rank_o>=0){//都存在
+					return (0-t);
+				}else{//仅self存在
+					return t;
+				}
+			}
+		}
+		return 0;
+	}
+
+	public void printWeight(double[][] w) throws IOException{;
+		for(int groupid=0;groupid<5;groupid++){
+			for(int sid=0;sid<numofsystem;sid++){
+				System.out.print(Double.toString(w[groupid][sid])+",");
+			}
+			System.out.print("\n");
+		}
+	}
+	public void cobimeFeatureWeight(double pp,double pdiss,double pdiv){
+		for(int i=0;i<5;i++){
+			for(int si=0;si<numofsystem;si++){
+				weights[i][si]=Math.pow(performance[i][si], pp)*
+						Math.pow(dissimilarity[i][si], pdiss)*
+						Math.pow(diversity[i][si], pdiv);
+			}
+		}
+//		for(int i=0;i<5;i++){
+//			for(int si=0;si<numofsystem;si++){
+//				weights[i][si]=Math.pow(performance[i][si], pp)*(dissimilarity[i][si]+
+//						diversity[i][si]);
+//			}
+//		}
+	}
+	
+	public void getAllweight(String norminput,String qrelpath,int top) throws Exception{
+		String metricid="ERR-IA@20";//1:ERR-IA@20 2:		
+		File[] inputs=new File(norminput).listFiles();
+		setPerformanceFromNdeval(inputs, qrelpath, metricid);//p
+		System.err.println("performance:");
+		printWeight(performance);
+//		setDissimilarity_distance(inputs, top);//dis
+//		System.err.println("distance");
+//		printWeight(dissimilarity);
+		setDissimilarity_reference(inputs, top);//ref
+		System.err.println("ref");
+		printWeight(dissimilarity);
+//		setDiversity_0(inputs, qrelpath, metricid, top);//d
+//		System.err.println("diversity(d)");
+//		printWeight(diversity);
+//		setDiversity_relsimilarity(inputs, qrelpath, metricid, top);//rel 相关文档相似性
+//		System.err.println("rel");
+//		printWeight(diversity);		
+	}
+	public double[] eval_total(String run,String qrel,String metric) throws Exception{
+		Ndeval n=new Ndeval();
+		ArrayList<rList> rrl=n.processRun(new File(run), false);
+		ArrayList<rList> qrl=n.processQrels(qrel);
+		n.applyQrels(qrl, rrl);	
+		double[] eval=n.statisticalAMetric(rrl, null, metric);
+		return eval;	
+	}
+	public double[] eval_mean(String run,String qrel) throws Exception{
+		Ndeval n=new Ndeval();
+		ArrayList<rList> rrl=n.processRun(new File(run), false);
+		ArrayList<rList> qrl=n.processQrels(qrel);
+		n.applyQrels(qrl, rrl);
+		double[] eval=n.statisticalAverage(n.statisticalAll(rrl, null));
+		return eval;	
+	}
+//	public static void test(){
+//		int top=100;
+//		for(int year=2009;year<=2011;year++){
+//			String norminput="E:/kuaipan/TREC Fusion Experiment/Fusiondata_3years/"+year+"/divinput.n";
+//			String qrelpath="E:/kuaipan/TREC Fusion Experiment/Fusiondata_3years/"+year+"/qrels-for-ndeval."+year+".txt";
+//			String output="tempfuse."+year;
+//			Hashtable<String, Integer> system=LC.setSystem(norminput);	
+//			LCHeuristic lch=new LCHeuristic(8, 50, (year-2009)*50+1, system);
+//			File[] inputs=new File(norminput).listFiles();
+//			lch.setPerformanceFromNdeval(inputs, qrelpath, "ERR-IA@20");
+//			lch.setDissimilarity_distance(inputs, top);//dis
+//			lch.setDiversity_0(inputs, qrelpath, "ERR-IA@20", top);//complementarity_pair-wise
+//			lch.cobimeFeatureWeight(0,0,1);
+//			lch.LCFusion(norminput, output+"."+year, "fusedresult"+"."+year);
+//			TempUtils.ndeval_mean(output+"."+year, qrelpath);
+//		}
+//	}
+	public static void main(String[] args) throws Exception{
+//		
+//		int year=2009;
+//		int startquery=1;
+//		int year=2010;
+//		int startquery=51;
+		int year=2011;
+		int startquery=101;
+//		int year=2012;
+//		int startquery=151;
+		int top=100;
+		String norminput="E:\\ws\\ws-1\\Fusion\\2013_choosen";
+		String qrelpath="E:\\ws\\ws-1\\Fusion\\2013.qrels-for-ndeval.txt";
+		String output="tempfuse";
+		//temp treatment-----------for chunlin experis
+		/*	
+		File[] fs=new File(rawinput).listFiles();
+		for(int i=0;i<fs.length;i++){
+			String name=fs[i].getName().substring(8);
+			BufferedReader re=new BufferedReader(new FileReader(fs[i]));
+			BufferedWriter r=new BufferedWriter(new FileWriter(norminput+"/"+name));
+			String templine="",line="";
+			while((templine=re.readLine())!=null){
+				line=templine.substring(0, templine.length()-4)+name;
+				r.write(line+"\n");
+			}
+			re.close();
+			r.close();
+		}
+		*/
+		//--------------------------
+		Hashtable<String, Integer> system=LC.setSystem(norminput);
+		
+		LCHeuristic lch=new LCHeuristic(8, 50, startquery, system);
+//      NormalizationModel.java
+		File[] inputs=new File(norminput).listFiles();
+		long start=System.currentTimeMillis();
+		lch.setPerformanceFromNdeval(inputs, qrelpath, "ERR-IA@20");//p
+		lch.printWeight(lch.performance);
+//		lch.setDissimilarity_reference(inputs, top);//ref
+		lch.printWeight(lch.dissimilarity);
+//		lch.setDissimilarity_distance(inputs, top);//dis
+//		lch.printWeight(lch.dissimilarity);		
+//		lch.setDiversity_0(inputs, qrelpath, "ERR-IA@20", top);//complementarity_pair-wise
+//		lch.setDiversity_TS(inputs, qrelpath, "ERR-IA@20", top);
+////	lch.setDiversity_relsimilarity(inputs, qrelpath, top);//rel	
+//		lch.printWeight(lch.diversity);
+//		long mid=System.currentTimeMillis();
+//		System.err.println((mid-start)/1000.0);
+		lch.cobimeFeatureWeight(0,0,1);
+//		lch.printWeights();
+		lch.LCFusion(norminput, output+"."+year, "fusedresult"+"."+year);
+//		long end=System.currentTimeMillis();
+//		System.err.println((end-mid)/1000.0);
+		TempUtils.ndeval_mean(output+"."+year, qrelpath);
+		
+		/*
+		Hashtable<String, Integer> system=LC.setSystem(rawinput);
+		LCHeuristic lch=new LCHeuristic(8, 50, startquery, system);//指定系统个数
+//		LC.normalization(rawinput, norminput,3);
+		if(year==2009) lch.setStandardlength(1000);
+		else lch.setStandardlength(10000);
+		lch.getAllweight( norminput, qrelpath,top);
+//		lch.tempforAyear_cbWeight_noplus(year, startquery, rawinput, norminput, output, qrelpath);
+		*/
+//		FileWriter fw=new FileWriter("c83result.csv",true);
+////		fw.write(year+"alpha:p,p2,c,c2"+"\n");
+//		for(int i=0;i<8;i++){
+//			for(int j=i+1;j<8;j++){
+//				for(int k=j+1;k<8;k++){
+//					if(i!=j &&j!=k &&i!=k){
+//						File[] input={inputs[i],inputs[j],inputs[k]};
+//						Hashtable<String, Integer> system=LC.setSystem(input);
+//						LCHeuristic lch=new LCHeuristic(3, 50, startquery, system);
+//						if(year==2009) lch.setStandardlength(1000);
+//						else lch.setStandardlength(10000);
+//						lch.setPerformanceFromNdeval(input, qrelpath, "ERR-IA@20");
+//						lch.setDiversity_0(input, qrelpath, "ERR-IA@20", top);
+//						lch.cobimeFeatureWeight(1,0,0);
+//						lch.LCFusion(input, output+"/"+year+".ppcc."+top, "ppcc."+top);
+//						double[] eval_p=lch.eval_mean(output+"/"+year+".ppcc."+top, qrelpath);	
+//						lch.cobimeFeatureWeight(2,0,0);
+//						lch.LCFusion(input, output+"/"+year+".ppcc."+top, "ppcc."+top);
+//						double[] eval_p2=lch.eval_mean(output+"/"+year+".ppcc."+top, qrelpath);	
+//						lch.cobimeFeatureWeight(0,0,1);
+//						lch.LCFusion(input, output+"/"+year+".ppcc."+top, "ppcc."+top);
+//						double[] eval_c=lch.eval_mean(output+"/"+year+".ppcc."+top, qrelpath);	
+//						lch.cobimeFeatureWeight(0,0,2);
+//						lch.LCFusion(input, output+"/"+year+".ppcc."+top, "ppcc."+top);
+//						double[] eval_c2=lch.eval_mean(output+"/"+year+".ppcc."+top, qrelpath);	
+////						for(int m=0;m<50;m++){
+////							fw.write(eval_p[m]+","+eval_p2[m]+","+eval_c[m]+","+eval_c2[m]+"\n");
+////						}
+//						fw.write(eval_p[2]+","+eval_p2[2]+","+eval_c[2]+","+eval_c2[2]+",,"+
+//								eval_p[11]+","+eval_p2[11]+","+eval_c[11]+","+eval_c2[11]+"\n");
+//					}
+//				}
+//			}
+//		}
+//		fw.close();
+	}
+}

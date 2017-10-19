@@ -1,0 +1,40 @@
+package diversity;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+
+public abstract class A_implicit {
+
+	public ArrayList<Data_> alData_ = new ArrayList<Data_>();
+	/**
+	 * 多样化算法
+	 */
+	public abstract void div();
+	
+	/**
+	 * 初始化原始结果文档
+	 * @throws IOException 
+	 */
+	public ArrayList<Data_> init(String inputPath, int qid) throws IOException{
+		this.alData_.clear();
+		BufferedReader br = new BufferedReader(new FileReader(inputPath));
+		String line = "";
+		while ((line = br.readLine())!=null){
+			String []strings = line.split("[\t|\n|\r| ]");
+			int tempqid = Integer.parseInt(strings[0]);
+			if (tempqid < qid){
+				continue;
+			}else if (tempqid == qid){
+				alData_.add(new Data_(line));
+			}else {
+				break;
+			}
+		}
+		
+		br.close();
+		return this.alData_;
+	}
+}

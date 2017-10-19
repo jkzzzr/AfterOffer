@@ -1,0 +1,64 @@
+package CBSumToWordList;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.zip.GZIPInputStream;
+
+public class ExtractEachDoc2 {
+	public static HashMap<String, String> enMap = ExtractEachDoc2.getEn();
+	
+	
+	private String path= AllPath.sourcePath;
+	public static String tmpPath = "";
+	
+	public ExtractEachDoc2(String docid){
+		System.out.println("finding: "+docid+"      (ExtractEachDoc2 - ExtractEachDoc2)");
+		if (AllPath.isGZip){
+			//path = "/run/media/lee/clueweb09_1of2"
+			path+="/"+enMap.get(docid.substring(10,16))+"/"+docid.substring(10,16)+"/"+docid.substring(17,19)+".warc.gz";
+			if(!tmpPath.equals(path)){
+				tmpPath = path;
+				try {
+					GZIPInputStream gzipInputStream = new GZIPInputStream(new FileInputStream(path));
+					WARC018Collection.br = new BufferedReader(new InputStreamReader(gzipInputStream));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				WARC018Collection.Line = "";
+			}
+			
+			
+		}else {
+			
+			path+="/"+docid.substring(10,16)+"/"+docid.substring(17,19)+".warc";
+			if(!tmpPath.equals(path)){
+				tmpPath = path;
+				try {
+					
+						WARC018Collection.br = new BufferedReader(new FileReader(tmpPath));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				WARC018Collection.Line = "";
+			}
+		}
+		//?xiugai
+		
+		new WARC018Collection(docid);
+	}
+	public static HashMap<String,String> getEn(){
+		HashMap<String, String> map = new HashMap<>();
+		for (int i = 1; i <=10; i++){
+			File file = new File("/run/media/lee/clueweb09_1of2/ClueWeb09_English_"+i);
+			String [] arr = file.list();
+			for (String string: arr){
+				map.put(string, "ClueWeb09_English_"+i);
+			}
+		}
+		return map;
+	}
+}

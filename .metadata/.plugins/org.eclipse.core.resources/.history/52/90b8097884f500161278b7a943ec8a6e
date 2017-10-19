@@ -1,0 +1,176 @@
+package CBSumToWordList;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.TreeSet;
+
+/**
+ * @author Lee
+ */
+public class Entry {
+
+	public static HashMap<String ,String> ResultMap ;
+	public static String CBSPath = AllPath.CBSPath;
+	public static String outPath = AllPath.wordListPath;
+	
+	public static void main(String[] args) {
+		AllPath.isEasy = false;
+			try {
+				(new Entry()).GetList2();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			System.out.println("only get keyWord ,but not write");
+			System.exit(1);
+		try {
+			WriteKeyWordFile();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        System.out.println("end\tCBSum_to_WordList - main()");
+        
+	}
+	/**
+	 * 事实证明这个跟qid没有什么卵关系，所以直接将所有的文档，都写出到同一个Qid下面就可以了
+	 * @throws IOException
+	 */
+	public void GetList2() throws IOException{
+		ResultMap = new HashMap<String,String>();
+		TreeSet<String> ts = sort2(CBSPath);
+		while(!ts.isEmpty()){
+			String tempLine = ts.pollFirst();
+			String docid = tempLine;
+		    ArrayList<String> tempValue = GetKeyWordStr("-1",docid);
+		    String tempR = "";
+		    for(int i = 0;i<tempValue.size();i++){
+		    	tempR += tempValue.get(i)+"\t";
+		    }
+			ResultMap.put(docid, tempR);
+		}
+	}
+
+	public static TreeSet<String> sort2(String Path){
+		TreeSet<String> ts = new TreeSet<String>();
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(Path));
+			String temp = "";
+			while((temp = br.readLine())!=null){
+				String [] str = temp.split("\t");
+				String doc = str[2];
+				ts.add(doc);
+			}
+			br.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return ts;
+	}
+	
+	
+	/**
+	 * @throws IOException 
+	 */
+	public void GetList() throws IOException{
+		ResultMap = new HashMap<String,String>();
+		TreeSet<String> ts = sort(CBSPath);
+		while(!ts.isEmpty()){
+			String tempLine = ts.pollFirst();
+			String [] str = tempLine.split("[+]");
+			String doc = str[0];
+			String qid = str[1];
+			if( ResultMap.containsKey(doc+"+"+qid)) continue;
+		    ArrayList<String> tempValue = GetKeyWordStr(qid,doc);
+		    String tempR = "";
+		    for(int i = 0;i<tempValue.size();i++){
+		    	tempR += tempValue.get(i)+"\t";
+		    }
+			ResultMap.put(doc+"+"+qid, qid+"+"+tempR);
+		}
+	}
+	public static TreeSet<String> sort(String Path){
+		TreeSet<String> ts = new TreeSet<String>();
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(Path));
+			String temp = "";
+			while((temp = br.readLine())!=null){
+				String [] str = temp.split("\t");
+				String doc = str[2];
+				String qid = str[0];
+				ts.add(doc+"+"+qid);
+			}
+			br.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return ts;
+	}
+	/**
+	 * 输入为文档Id和查询编号，得到文档词频List
+	 * @param docID
+	 * @return
+	 */
+	public static String html = "";
+	public static String DOC = "";
+	public ArrayList<String> GetKeyWordStr(String qid,String docID){
+		String htmlCode = "";
+		if(!DOC.equals(docID)){
+			htmlCode = Entry_Extract_HtmlCode.run(docID);
+			html = htmlCode ;
+			DOC = docID;
+		}else{
+			htmlCode = html;
+			
+			BufferedWriter bwttt;
+			try {
+				bwttt = new BufferedWriter(new FileWriter(AllPath.errorPath,true));
+				bwttt.write("error - CBSum_To_WordList - GetKeyWordStr\n\tthe same doc :=>>\t "+DOC);
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		ArrayList<String> keyString = EntryH_W.run(htmlCode, docID , qid);
+        return keyString;
+	}
+	
+	
+	/**
+	 * @throws IOException 
+	 */
+	public static void WriteKeyWordFile() throws IOException{
+		BufferedReader br = new BufferedReader(new FileReader(CBSPath));
+		String tempLine ;
+		String tmpqid = "";
+		BufferedWriter bw = new BufferedWriter(new FileWriter(outPath+"/out.null",true));;
+		int[] count2 = new int[50];
+		for(java.util.Map.Entry<String, String> ent :ResultMap.entrySet()){
+			count2[Integer.parseInt(ent.getKey().split("[+]")[1])-1]++;
+		}
+
+		while(((tempLine = br.readLine())!=null)){
+			String[] tempArr = tempLine.split("\t");
+			String tempDoc = tempArr[2];
+			String tempQid = tempArr[0];
+			if(!tempQid.equals(tmpqid)){
+				tmpqid = tempQid;
+			   bw.close();
+			   bw = new BufferedWriter(new FileWriter(outPath+"/"+tempQid+".out1"));
+			   bw.write(count2[Integer.parseInt(tmpqid)-1]+"\n");
+			}
+			String[] tempValue = (ResultMap.get(tempDoc+"+"+tempQid)).split("[+]");
+			bw.write(tempValue[1]);
+			bw.newLine();
+			bw.flush();
+		}
+		br.close();
+		bw.close();
+	}
+	
+}
