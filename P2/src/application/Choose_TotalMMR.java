@@ -51,7 +51,11 @@ public class Choose_TotalMMR {
 			System.out.println("当前进度：\tqid:" +i);
 			choose_MMR.clear(i);
 			choose_MMR.init_chooseCen(a);
-			HashSet<Integer> dataSet = choose_MMR.init_dataList("E:\\2014query\\result-原始，还没多样化的\\全局-自定义");
+			HashSet<Integer> dataSet = choose_MMR.init_dataList("E:\\2014query\\result-原始，还没多样化的\\全局-自定义"
+					,"E:\\2014query\\DPH_1.res.index.adhoc"
+					,"E:\\2014query\\check\\LDA."
+							+ typenumber
+							+ ".choose");
 			choose_MMR.choose(dataSet, "E:\\2014query\\DPH_1.res.index.adhoc", "E:\\2014query\\check\\LDA."
 					+ typenumber
 					+ ".choose");

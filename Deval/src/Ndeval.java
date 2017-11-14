@@ -443,9 +443,9 @@ public class Ndeval {
 				for (int j = 0; j < rl.subtopics; j++)
 					if (rl.list.get(i).rel[j]>0){
 						score += subtopicGain[j];
-						subtopicGain[j] *= (1.0 - alpha);
-					}
-			rl.dcg[i] = score*discount(i);
+						subtopicGain[j] *= (1.0 - alpha);//j个子主题，每有一个子主题相关，就给这个子主题扣点分数。也就是*=(1-a)
+					}//累计这j个子主题，得到score
+			rl.dcg[i] = score*discount(i);//乘以这个排名的损失。
 		}
 
 		for (int i = 0; i < DEPTH; i++){

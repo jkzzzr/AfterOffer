@@ -1,0 +1,55 @@
+package other;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+
+import structure.Data;
+import structure.Data_;
+
+
+/**
+ * 从评价文件中提取出文档，用来给分类算法去分类。
+ * 提取出的文档，可以使结果列表类型的，也可以是简单的文档名，列表。
+ * @author Lee
+ *
+ */
+public class Deal_EdevalFile {
+	public HashSet<String> doclist = new HashSet<String>();
+	public static void main(String[] args) {
+		
+
+	}
+
+	public void init(String inputPath) throws IOException{
+		HashSet<String> result = new HashSet<String>();
+		BufferedReader bReader = new BufferedReader(new FileReader(inputPath));
+		String temp = "";
+		while((temp = bReader.readLine())!=null){
+			Data tempdData = new Data(temp);
+			if (!result.contains(tempdData.getDocid())){
+				result.add(tempdData.getDocid());
+			}
+		}
+		this.doclist = result;
+		return ;
+	}
+	
+	public void print(String outpuPath) throws IOException{
+		BufferedWriter bw = new BufferedWriter(new FileWriter(outpuPath));
+		Iterator<String> it = this.doclist.iterator();
+		while (it.hasNext()){
+			bw.write(it.next()+"\n");
+		}
+		bw.close();
+	}
+	
+	
+	
+}

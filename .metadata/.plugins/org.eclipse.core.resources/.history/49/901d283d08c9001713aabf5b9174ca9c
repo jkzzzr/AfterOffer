@@ -1,0 +1,37 @@
+package other;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+
+import structure.Data_;
+
+
+/**
+ * 从评价文件中提取出文档，用来给分类算法去分类。
+ * 提取出的文档，可以使结果列表类型的，也可以是简单的文档名，列表。
+ * @author Lee
+ *
+ */
+public class Deal_EdevalFile {
+
+	public static void main(String[] args) {
+		
+
+	}
+
+	public ArrayList<String> init(String inputPath) throws IOException{
+		ArrayList<String> result = new ArrayList<String>();
+		BufferedReader bReader = new BufferedReader(new FileReader(inputPath));
+		String temp = "";
+		while((temp = bReader.readLine())!=null){
+			Data_ tempdData_ = new Data_(temp);
+			if (tempdData_.getQid() == this.qid){
+				
+			}
+		}
+		return null;
+	}
+}

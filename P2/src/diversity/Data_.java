@@ -1,5 +1,7 @@
 package diversity;
 
+import java.util.StringTokenizer;
+
 public class Data_ {
 
 	private int qid;
@@ -9,11 +11,18 @@ public class Data_ {
 	private double score;
 	
 	public Data_(String line){
-		String []strings = line.split("[\t|\n|\r| ]");
-		this.qid = Integer.parseInt(strings[0]);
-		this.docid = Integer.parseInt(strings[2]);
-		this.order = Integer.parseInt(strings[3]);
-		this.score = Double.parseDouble(strings[4]);
+		String []strings = line.split("[\t|\n|\r]");
+		StringTokenizer st = new StringTokenizer(line);
+		
+		this.qid = Integer.parseInt(st.nextToken().trim());st.nextToken();
+		this.docid = Integer.parseInt(st.nextToken().trim());
+		this.order = Integer.parseInt(st.nextToken().trim());
+		this.score = Double.parseDouble(st.nextToken().trim());
+		
+		/*this.qid = Integer.parseInt(strings[0].trim());
+		this.docid = Integer.parseInt(strings[2].trim());
+		this.order = Integer.parseInt(strings[3].trim());
+		this.score = Double.parseDouble(strings[4].trim());*/
 	}
 	
 	public Data_(int qid, int docid, int order, double score) {

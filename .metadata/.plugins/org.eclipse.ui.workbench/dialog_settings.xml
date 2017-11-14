@@ -7,8 +7,8 @@
 	<section name="EditorSelectionDialog">
 	</section>
 	<section name="org.eclipse.ui.internal.QuickAccess">
-		<item value="748" key="dialogHeight"/>
-		<item value="960" key="dialogWidth"/>
+		<item value="760" key="dialogHeight"/>
+		<item value="1440" key="dialogWidth"/>
 		<list key="textEntries">
 		</list>
 		<list key="orderedElements">

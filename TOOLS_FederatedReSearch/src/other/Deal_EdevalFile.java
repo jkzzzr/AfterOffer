@@ -1,0 +1,65 @@
+package other;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+
+import structure.Data;
+import structure.Data_;
+
+
+/**
+ * 从评价文件中提取出文档，用来给分类算法去分类。
+ * 提取出的文档，可以使结果列表类型的，也可以是简单的文档名，列表。
+ * @author Lee
+ *
+ */
+public class Deal_EdevalFile {
+	public static HashSet<String> doclist = new HashSet<String>();
+	public static void main(String[] args) throws IOException {
+		init("E:\\myExperiment\\2013\\Eval-origin.txt");
+		print("E:\\myExperiment\\2013\\Eval-origin.alldoc.String");
+
+	}
+
+	/**
+	 * 读取评价文件列表
+	 * @param inputPath
+	 * @throws IOException
+	 */
+	public static void init(String inputPath) throws IOException{
+		HashSet<String> result = new HashSet<String>();
+		BufferedReader bReader = new BufferedReader(new FileReader(inputPath));
+		String temp = "";
+		while((temp = bReader.readLine())!=null){
+			Data tempdData = new Data(temp,1);
+			if (!result.contains(tempdData.getDocid())){
+				result.add(tempdData.getDocid());
+			}
+		}
+		doclist = result;
+		return ;
+	}
+	/**
+	 * 写出到文件中，写出格式为，每行一个docid，这样的列表
+	 * @param outpuPath
+	 * @throws IOException
+	 */
+	public static void print(String outpuPath) throws IOException{
+		BufferedWriter bw = new BufferedWriter(new FileWriter(outpuPath));
+		Iterator<String> it = doclist.iterator();
+		while (it.hasNext()){
+			bw.write(it.next()+"\n");
+		}
+		bw.close();
+	}
+	
+	
+	
+}

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy element &apos;Data_.java&apos; to &apos;TOOLS_FederatedReSearch/src/structure&apos;&#x0D;&#x0A;- Original project: &apos;P1&apos;&#x0D;&#x0A;- Destination element: &apos;TOOLS_FederatedReSearch/src/structure&apos;&#x0D;&#x0A;- Original element: &apos;structure.Data_.java&apos;" description="Copy compilation unit" destination="=TOOLS_FederatedReSearch/src&lt;structure" element1="/src&lt;structure{Data_.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1510642231150" units="1" version="1.0"/>
+</session>

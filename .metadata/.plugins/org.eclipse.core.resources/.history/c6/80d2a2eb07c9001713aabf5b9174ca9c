@@ -1,0 +1,27 @@
+package other;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.ArrayList;
+
+
+/**
+ * 从评价文件中提取出文档，用来给分类算法去分类。
+ * 提取出的文档，可以使结果列表类型的，也可以是简单的文档名，列表。
+ * @author Lee
+ *
+ */
+public class Deal_EdevalFile {
+
+	public static void main(String[] args) {
+		
+
+	}
+
+	public ArrayList<String> init(String inputPath){
+		ArrayList<String> result = new ArrayList<String>();
+		BufferedReader bReader = new BufferedReader(new FileReader(inputPath));
+		
+		return null;
+	}
+}

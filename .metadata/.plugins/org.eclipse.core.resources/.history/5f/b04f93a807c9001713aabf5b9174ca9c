@@ -1,0 +1,17 @@
+package other;
+
+
+/**
+ * 从评价文件中提取出文档，用来给分类算法，去分类。
+ * 分类成
+ * @author Lee
+ *
+ */
+public class Deal_EdevalFile {
+
+	public static void main(String[] args) {
+		
+
+	}
+
+}
